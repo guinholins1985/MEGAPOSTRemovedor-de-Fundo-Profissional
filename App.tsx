@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { removeBackground } from './services/geminiService';
 import { UploadIcon } from './components/UploadIcon';
@@ -45,7 +44,11 @@ function App() {
       setProcessedImage(`data:image/png;base64,${newBase64Data}`);
     } catch (err) {
       console.error(err);
-      setError('Ocorreu um erro ao remover o fundo. Tente novamente.');
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Ocorreu um erro desconhecido ao remover o fundo. Tente novamente.');
+      }
     } finally {
       setIsLoading(false);
     }

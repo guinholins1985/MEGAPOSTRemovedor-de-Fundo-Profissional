@@ -1,15 +1,15 @@
-
 import { GoogleGenAI, Modality } from "@google/genai";
 
-const API_KEY = process.env.API_KEY;
-
-if (!API_KEY) {
-  throw new Error("API_KEY environment variable not set");
-}
-
-const ai = new GoogleGenAI({ apiKey: API_KEY });
-
 export async function removeBackground(base64ImageData: string, mimeType: string): Promise<string> {
+  const API_KEY = process.env.API_KEY;
+
+  if (!API_KEY) {
+    // Esta mensagem é para o desenvolvedor que está implantando o aplicativo.
+    throw new Error("A chave da API (API_KEY) não foi configurada. Adicione-a às variáveis de ambiente do seu projeto.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey: API_KEY });
+
   const imagePart = {
     inlineData: {
       data: base64ImageData,
@@ -18,7 +18,7 @@ export async function removeBackground(base64ImageData: string, mimeType: string
   };
 
   const textPart = {
-    text: "Remove the background from this image. The main subject should be perfectly preserved. The output must have a transparent background.",
+    text: "Remove the background from this image. The main subject should be perfectly preserved. The output must have a transparent background and be in PNG format.",
   };
 
   try {
@@ -32,13 +32,24 @@ export async function removeBackground(base64ImageData: string, mimeType: string
       },
     });
 
-    if (response.candidates && response.candidates[0].content.parts[0].inlineData) {
-      return response.candidates[0].content.parts[0].inlineData.data;
-    } else {
-      throw new Error("No image data returned from API.");
+    if (response.candidates && response.candidates.length > 0) {
+      for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+          return part.inlineData.data;
+        }
+      }
     }
+    
+    // Este erro ocorre quando a API retorna uma resposta, mas não é o que esperamos.
+    throw new Error("A API não retornou uma imagem. A resposta pode estar malformada ou vazia.");
+
   } catch (error) {
-    console.error("Error calling Gemini API:", error);
-    throw new Error("Failed to process image with Gemini API.");
+    console.error("Erro ao chamar a API Gemini:", error);
+    // Relança o erro original para ser exibido ao usuário.
+    // Os erros do SDK do Gemini geralmente são informativos o suficiente.
+    if (error instanceof Error) {
+        throw error;
+    }
+    throw new Error("Ocorreu um erro desconhecido ao se comunicar com a API.");
   }
 }
